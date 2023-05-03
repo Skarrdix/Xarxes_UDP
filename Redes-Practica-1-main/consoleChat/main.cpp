@@ -3,7 +3,7 @@
 #include <SFML\Network.hpp>
 #include <iostream>
 #include <thread>
-#include "TcpNetworkManager.hpp"
+#include "UdpNetworkManager.hpp"
 
 
 
@@ -34,8 +34,8 @@ void main()
 
 	server_mode = std::stoi(mode_str);
 
-	TCPSocketManager* _serverSocketManager = new TCPSocketManager(5000, sf::IpAddress("127.0.0.1"));
-	TCPSocketManager* _clientSocketManager = new TCPSocketManager(5000, sf::IpAddress("127.0.0.1"));
+	UDPSocketManager* _serverSocketManager = new UDPSocketManager(5000, sf::IpAddress("127.0.0.1"));
+	UDPSocketManager* _clientSocketManager = new UDPSocketManager(5000, sf::IpAddress("127.0.0.1"));
 
 	if (server_mode == 1)
 	{
@@ -45,7 +45,7 @@ void main()
 
 		//std::thread listenForNewClient(&TCPSocketManager::Listen, _serverSocketManager);
 		//listenForNewClient.detach();
-		std::thread socketSelectorListener(&TCPSocketManager::SocketSelectorFunctionality, _serverSocketManager);
+		std::thread socketSelectorListener(&UDPSocketManager::SocketSelectorFunctionality, _serverSocketManager);
 		socketSelectorListener.detach();
 
 		system("cls");
@@ -135,7 +135,7 @@ void main()
 		std::string* _rcvMessageClient = new std::string();
 
 		// Threads:
-		std::thread rcv_t_client(&TCPSocketManager::Receive, _clientSocketManager, _inServerPacket, _rcvMessageClient);
+		std::thread rcv_t_client(&UDPSocketManager::Receive, _clientSocketManager, _inServerPacket, _rcvMessageClient);
 		rcv_t_client.detach();
 		
 		std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient);

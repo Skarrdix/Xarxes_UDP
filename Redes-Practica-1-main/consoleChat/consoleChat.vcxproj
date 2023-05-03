@@ -156,10 +156,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="TcpNetworkManager.cpp" />
+    <ClCompile Include="UdpNetworkManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TcpNetworkManager.hpp" />
+    <ClInclude Include="UdpNetworkManager.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

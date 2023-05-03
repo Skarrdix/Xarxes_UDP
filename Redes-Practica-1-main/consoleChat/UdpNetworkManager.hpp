@@ -5,13 +5,18 @@
 #include <list>
 #include <map>
 
-class TCPSocketManager
+class UDPSocketManager
 {
 public:
-    struct Client
+    struct Client // NEW: changed Client structure
     {
+        // NEW: removed "socket"
+        sf::IpAddress ip; // NEW: added this
+        unsigned short port; // NEW: added this
         std::string username;
-        sf::Socket* socket;
+        unsigned int id; // NEW: added this
+        int ts; // NEW: added this
+        
         Client(std::string _username) {
             username = _username;
         }
@@ -19,15 +24,13 @@ public:
 
 private:
 // ------ VARIABLES: ------
-    sf::TcpSocket _socket;
-    sf::TcpListener _dispatcher;
+    sf::UdpSocket _socket;
+    sf::TcpListener _dispatcher; // No existeix el "sf::UdpListener"??
     unsigned short _port;
     sf::IpAddress _ip;
-    sf::SocketSelector selector;
-    std::list<sf::TcpSocket*> clients;
-    std::map<sf::TcpSocket*, std::string> clientNames;
-public:
-    std::vector<Client> _clients;
+    sf::SocketSelector selector; // No sabem si això serà necessari en UDP.
+
+    std::map<std::pair<sf::IpAddress, unsigned short>, Client> _clients; // NEW: added this
 
 // ------ ENUM: ------
     enum class Status
@@ -39,7 +42,7 @@ public:
     };
 
 // ------ CONSTRUCTOR: ------
-    TCPSocketManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip) {}
+    UDPSocketManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip) {}
 
 // ------ METHODS: ------
     Status Send(sf::Packet& packet, std::string* sendMessage);

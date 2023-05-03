@@ -18,12 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TcpNetworkManager.cpp">
+    <ClCompile Include="UdpNetworkManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TcpNetworkManager.hpp">
+    <ClInclude Include="UdpNetworkManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

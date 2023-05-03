@@ -1,6 +1,6 @@
-#include "TcpNetworkManager.hpp"
+#include "UdpNetworkManager.hpp"
 
-TCPSocketManager::Status TCPSocketManager::Send(sf::Packet& packet, std::string* sendMessage)
+UDPSocketManager::Status UDPSocketManager::Send(sf::Packet& packet, std::string* sendMessage)
 {
 	// Fill packet with data:
 	packet << *sendMessage;
@@ -53,7 +53,7 @@ TCPSocketManager::Status TCPSocketManager::Send(sf::Packet& packet, std::string*
 	return tempStatus;
 }
 
-void TCPSocketManager::Receive(sf::Packet& packet, std::string* rcvMessage) // No ho podem passar per referència,
+void UDPSocketManager::Receive(sf::Packet& packet, std::string* rcvMessage) // No ho podem passar per referència,
 																			// el valor de rcvMessage no s'aplica fora de la funció.
 {
 	std::string mssg_temp;
@@ -86,7 +86,7 @@ void TCPSocketManager::Receive(sf::Packet& packet, std::string* rcvMessage) // N
 	}
 }
 
-TCPSocketManager::Status TCPSocketManager::Connect()
+UDPSocketManager::Status UDPSocketManager::Connect()
 {
 	sf::Socket::Status status = _socket.connect(_ip, _port, sf::seconds(5.f));
 
@@ -99,7 +99,7 @@ TCPSocketManager::Status TCPSocketManager::Connect()
 	return Status::Done;
 }
 
-TCPSocketManager::Status TCPSocketManager::Listen()
+UDPSocketManager::Status UDPSocketManager::Listen()
 {
 	// Poner socket en escucha - Servidor
 
@@ -131,18 +131,16 @@ TCPSocketManager::Status TCPSocketManager::Listen()
 	return tempStatus;
 }
 
-void TCPSocketManager::Disconnect()
+void UDPSocketManager::Disconnect()
 {
 	// Desconectar TCP Listener & Socket
 	_dispatcher.close();
 	_socket.disconnect();
 }
 
-void TCPSocketManager::SocketSelectorFunctionality()
+void UDPSocketManager::SocketSelectorFunctionality()
 {
-	
 	selector.add(_dispatcher); // Nuestro dispatcher creemos que es el listener de la documentacion
-	
 
 	while (true)
 	{
@@ -213,17 +211,17 @@ void TCPSocketManager::SocketSelectorFunctionality()
 
 }
 
-unsigned short TCPSocketManager::GetLocalPort()
+unsigned short UDPSocketManager::GetLocalPort()
 {
 	return _port;
 }
 
-sf::IpAddress TCPSocketManager::GetIp()
+sf::IpAddress UDPSocketManager::GetIp()
 {
 	return _ip;
 }
 
-sf::TcpSocket* TCPSocketManager::GetSocket()
+sf::TcpSocket* UDPSocketManager::GetSocket()
 {
 	return &_socket;
 }
