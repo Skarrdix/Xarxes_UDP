@@ -72,16 +72,43 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 			{
 				case PacketType::TRYCONNECTION:
 				{
+					bool alreadyExists = false;
+					sf::Packet connectionPacket;
+					for (auto it = _clients.begin(); it != _clients.end();++it) {
+						if (it->first.second == remotePort) {
+							alreadyExists = true;
+						}
+					}
+					if (alreadyExists) {
+						connectionPacket << (int)PacketType::CANNOTCONNECT;
+					}
+					else
+					{
+						connectionPacket << (int)PacketType::CHALLENGE;
+
+						// Create challenge
+						int number1 = 5;
+						int number2 = 5;
+
+						connectionPacket << number1 << number2;
+
+						int solution = number1 * number2;
+
+						// Add newConnection to map
+						std::pair<sf::IpAddress, unsigned short> _ipAndPort = std::make_pair(remoteIp, remotePort);
+						NewConnection _newConnection(remoteIp, remotePort, "", number1, number2, solution);
+
+						_newConnections[_ipAndPort] = _newConnection;
+					}
+
+					Send(connectionPacket, remoteIp, remotePort, rcvMessage);
 					break;
 				}
 
-				case PacketType::CANCONNECT:
+				case PacketType::CHALLENGE:
 				{
-					break;
-				}
+					// Check if the client's solution to challenge is correct:
 
-				case PacketType::CANNOTCONNECT:
-				{
 					break;
 				}
 
@@ -92,6 +119,10 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 
 				case PacketType::DISCONNECT:
 				{
+					std::pair<sf::IpAddress, unsigned short> keyToErase;
+					keyToErase.first = remoteIp;
+					keyToErase.second = remotePort;
+					_clients.erase(keyToErase);
 					break;
 				}
 

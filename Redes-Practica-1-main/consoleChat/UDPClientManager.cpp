@@ -70,23 +70,29 @@ void UDPClientManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 			// Aquí gestionarem tots els diferents casos possibles de missatge (PacketType):
 			switch ((PacketType)type)
 			{
-				case PacketType::TRYCONNECTION:
-				{
-					break;
-				}
 
 				case PacketType::CANCONNECT:
 				{
+					std::cout << "connected succesfully" << std::endl;
 					break;
 				}
 
 				case PacketType::CANNOTCONNECT:
 				{
+					_port++;
+					Connect();
+					break;
+				}
+
+				case PacketType::CHALLENGE:
+				{
+					packet >> mssg;
 					break;
 				}
 
 				case PacketType::MESSAGE:
 				{
+					packet >> mssg;
 					break;
 				}
 

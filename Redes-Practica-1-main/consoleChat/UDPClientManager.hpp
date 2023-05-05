@@ -27,7 +27,7 @@ private:
     sf::UdpSocket _socket;
     unsigned short _port;
     sf::IpAddress _ip;
-
+    std::string mssg;
     std::map<std::pair<sf::IpAddress, unsigned short>, Client> _clients; // NEW: added this
 
 // ------ ENUM: ------
@@ -44,6 +44,7 @@ private:
         TRYCONNECTION,      // Packet to start a connection
         CANCONNECT,         // Packet to confirm connection
         CANNOTCONNECT,      // Packet to confirm failed connection
+        CHALLENGE,          // Packet to send challenge question and challenge answer
         MESSAGE,            // Packet to send a message to the global chat
         DISCONNECT          // Packet to disconnect
     };
