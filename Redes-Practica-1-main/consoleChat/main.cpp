@@ -3,10 +3,8 @@
 #include <SFML\Network.hpp>
 #include <iostream>
 #include <thread>
-#include "UdpNetworkManager.hpp"
-
-
-
+#include "UDPServerManager.hpp"
+#include "UDPClientManager.hpp"
 
 void GetLineFromCin_t(std::string* mssg)
 {
@@ -34,22 +32,23 @@ void main()
 
 	server_mode = std::stoi(mode_str);
 
-	UDPSocketManager* _serverSocketManager = new UDPSocketManager(5000, sf::IpAddress("127.0.0.1"));
-	UDPSocketManager* _clientSocketManager = new UDPSocketManager(5000, sf::IpAddress("127.0.0.1"));
+	UDPServerManager* _serverSocketManager = new UDPServerManager(5000, sf::IpAddress("127.0.0.1"));
+	UDPClientManager* _clientSocketManager = new UDPClientManager(sf::IpAddress("127.0.0.1"));
 
-	if (server_mode == 1)
+	if (server_mode == 1) // Server
 	{
 		_serverSocketManager->Listen();
+		std::cout << "> SERVER:\n" << std::endl;
+		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "> Server mode running..." << std::endl;
 		std::cout << "> Waiting for client to connect..." << std::endl;
 
 		//std::thread listenForNewClient(&TCPSocketManager::Listen, _serverSocketManager);
 		//listenForNewClient.detach();
-		std::thread socketSelectorListener(&UDPSocketManager::SocketSelectorFunctionality, _serverSocketManager);
-		socketSelectorListener.detach();
 
 		system("cls");
 
+		std::cout << "> SERVER:\n" << std::endl;
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "\t> Message to send to the client: ";
 
@@ -71,6 +70,9 @@ void main()
 			if (_rcvMessageServer->size() > 0)
 			{
 				system("cls");
+
+				std::cout << "> SERVER:\n" << std::endl;
+				std::cout << "--------------------------------------------------\n" << std::endl;
 
 				if (*_rcvMessageServer == "exit" || *_rcvMessageServer == "Exit")
 					std::cout << "> Client Disconnected." << std::endl;
@@ -99,11 +101,13 @@ void main()
 
 		// Si s'arriba aquí, el servidor revient (es tanca).
 	}
-	else if (server_mode == 2)
+	else if (server_mode == 2) // Client
 	{
 		bool alreadyExists = false;
 		std::string name;
-		std::cout << "Enter your Username: ";
+		std::cout << "> CLIENT:\n" << std::endl;
+		std::cout << "--------------------------------------------------\n" << std::endl;
+		std::cout << "> Enter your Username: ";
 		std::cin >> name;
 		/*do {
 			alreadyExists = false;
@@ -126,6 +130,8 @@ void main()
 			return;
 		}
 		
+		std::cout << "> CLIENT:\n" << std::endl;
+		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "> Successfully connected to server.\n" << std::endl;
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "\t> Message to send to the server: ";
@@ -153,6 +159,9 @@ void main()
 				}
 
 				system("cls");
+
+				std::cout << "> CLIENT:\n" << std::endl;
+				std::cout << "--------------------------------------------------\n" << std::endl;
 				std::cout << "> From Server: " << *_rcvMessageClient << std::endl;
 				std::cout << "\n--------------------------------------------------\n" << std::endl;
 				std::cout << "\t> Message to send to the server: ";

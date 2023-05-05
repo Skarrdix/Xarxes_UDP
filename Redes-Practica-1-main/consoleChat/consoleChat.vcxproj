@@ -156,10 +156,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="UdpNetworkManager.cpp" />
+    <ClCompile Include="UDPClientManager.cpp" />
+    <ClCompile Include="UDPServerManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="UdpNetworkManager.hpp" />
+    <ClInclude Include="UDPClientManager.hpp" />
+    <ClInclude Include="UDPServerManager.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
