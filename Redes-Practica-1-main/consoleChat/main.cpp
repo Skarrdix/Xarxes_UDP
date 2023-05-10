@@ -88,11 +88,14 @@ void main()
 			// Logic for sending:
 			if (_sendMessageServer->size() > 0)
 			{
-				if (_serverSocketManager->Send(_inServerPacket, _sendMessageServer) == TCPSocketManager::Status::Disconnected)
+				for (auto client : _serverSocketManager->_clients)
 				{
-					_sendMessageServer->clear();
-					_serverSocketManager->Disconnect();
-					break;
+					if (_serverSocketManager->Send(_inServerPacket, client.first.first, client.first.second, _sendMessageServer) == UDPServerManager::Status::Disconnected)
+					{
+						_sendMessageServer->clear();
+						_serverSocketManager->Disconnect();
+						break;
+					}
 				}
 
 				_sendMessageServer->clear();
@@ -109,6 +112,7 @@ void main()
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "> Enter your Username: ";
 		std::cin >> name;
+
 		/*do {
 			alreadyExists = false;
 			std::cin >> name;
@@ -124,7 +128,8 @@ void main()
 		_clientSocketManager->_clients.push_back(TCPSocketManager::Client(name));
 		std::cout << "> Client mode running..." << std::endl;
 		*/
-		if (_clientSocketManager->Connect() != TCPSocketManager::Status::Done)
+
+		if (_clientSocketManager->Connect() != UDPClientManager::Status::Done)
 		{
 			std::cout << "\n! Error:" << std::endl;
 			return;
@@ -141,7 +146,7 @@ void main()
 		std::string* _rcvMessageClient = new std::string();
 
 		// Threads:
-		std::thread rcv_t_client(&UDPSocketManager::Receive, _clientSocketManager, _inServerPacket, _rcvMessageClient);
+		std::thread rcv_t_client(&UDPClientManager::Receive, _clientSocketManager, _inServerPacket, _rcvMessageClient);
 		rcv_t_client.detach();
 		
 		std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient);
@@ -172,7 +177,7 @@ void main()
 			// Logic for sending:
 			if (_sendMessageClient->size() > 0)
 			{
-				if (_clientSocketManager->Send(_inServerPacket, _sendMessageClient) == TCPSocketManager::Status::Disconnected)
+				if (_clientSocketManager->Send(_inServerPacket, _serverSocketManager->GetIp(), _serverSocketManager->GetPort(), _sendMessageClient) == UDPClientManager::Status::Disconnected)
 				{
 					_sendMessageClient->clear();
 					_clientSocketManager->Disconnect();

@@ -53,9 +53,12 @@ UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddres
 	return tempStatus;
 }
 
-void UDPClientManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsigned short remotePort, std::string* rcvMessage)  // No ho podem passar per referència,
+void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // No ho podem passar per referència,
 																																// el valor de rcvMessage no s'aplica fora de la funció.
 {
+	sf::IpAddress remoteIp;
+	unsigned short remotePort;
+
 	std::string mssg_temp;
 
 	while (true)
@@ -71,7 +74,7 @@ void UDPClientManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 			switch ((PacketType)type)
 			{
 
-				case PacketType::CANCONNECT:
+				case PacketType::CANCONNECT: // Potser això s'ha de tocar
 				{
 					std::cout << "connected succesfully" << std::endl;
 					break;
@@ -86,7 +89,30 @@ void UDPClientManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 
 				case PacketType::CHALLENGE:
 				{
-					packet >> mssg;
+					int number1;
+					int number2;
+
+					packet >> number1 >> number2;
+
+					int solution = number1 * number2;
+
+					sf::Packet challengeSolutionPacket;
+					challengeSolutionPacket << (int)PacketType::CHALLENGE << solution;
+
+					Send(challengeSolutionPacket, remoteIp, remotePort, rcvMessage);
+					//_socket.send(challengeSolutionPacket, remoteIp, remotePort);
+
+					break;
+				}
+
+				case PacketType::CHALLENGEFAILED:
+				{
+					sf::Packet retryChallengePacket;
+					retryChallengePacket << (int)PacketType::RETRYCHALLENGE;
+
+					Send(retryChallengePacket, remoteIp, remotePort, rcvMessage);
+					//_socket.send(retryChallengePacket, remoteIp, remotePort);
+
 					break;
 				}
 
@@ -106,7 +132,6 @@ void UDPClientManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 			}
 		}
 		else if (status == sf::Socket::Disconnected)
-
 		{
 			std::cout << "Disconnected: " << _port << std::endl;
 		}
@@ -127,9 +152,11 @@ UDPClientManager::Status UDPClientManager::Connect()
 	sf::Packet packet;
 	packet << (int)PacketType::TRYCONNECTION;
 
+	UDPClientManager::Status status = Send(packet, _ip, _port, new std::string()); // CUIDAO! Preguntar això.
+
 	sf::Socket::Status status = _socket.send(packet, _ip, _port);
 
-	if (status != sf::Socket::Done)
+	if (status != UDPClientManager::Status::Done)
 	{
 		std::cout << "\t> Status!=Done attempting to connect to:\n\t\t> Server";
 		return Status::Error;

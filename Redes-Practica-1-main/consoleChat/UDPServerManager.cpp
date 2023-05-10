@@ -93,7 +93,7 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 						connectionPacket << number1 << number2;
 
 						int solution = number1 * number2;
-
+	
 						// Add newConnection to map
 						std::pair<sf::IpAddress, unsigned short> _ipAndPort = std::make_pair(remoteIp, remotePort);
 						NewConnection _newConnection(remoteIp, remotePort, "", number1, number2, solution);
@@ -107,6 +107,27 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 
 				case PacketType::CHALLENGE:
 				{
+					sf::Packet connectionPacket;
+					int playerSolution;
+					packet >> playerSolution;
+
+					std::pair<sf::IpAddress, unsigned short> _remotePair = std::make_pair(remoteIp, remotePort);
+
+					if (_newConnections[_remotePair].solution == playerSolution)
+					{
+						_newConnections.erase(_remotePair);
+						
+						// CUIDAO! Ara mateix tots els clients es diuen igual.
+						_clients[_remotePair] = Client("Paco", remoteIp, remotePort, _nextClientId++);
+
+						connectionPacket << (int)PacketType::CANCONNECT;
+						Send(connectionPacket, remoteIp, remotePort, rcvMessage);
+					}
+					else
+					{
+						connectionPacket << (int)PacketType::CHALLENGEFAILED;
+						Send(connectionPacket, remoteIp, remotePort, rcvMessage);
+					}
 					// Check if the client's solution to challenge is correct:
 
 					break;
@@ -200,7 +221,7 @@ void UDPServerManager::Disconnect()
 	_socket.unbind();
 }
 
-unsigned short UDPServerManager::GetLocalPort()
+unsigned short UDPServerManager::GetPort()
 {
 	return _port;
 }
