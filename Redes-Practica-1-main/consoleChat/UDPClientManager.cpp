@@ -67,6 +67,8 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 		if (status == sf::Socket::Done)
 		{
+			std::cout << "HA ARRIBAT UN PAQUET AL CLIENT" << std::endl;
+
 			int type;
 			packet >> type;
 
@@ -76,12 +78,15 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 				case PacketType::CANCONNECT: // Potser això s'ha de tocar
 				{
-					std::cout << "connected succesfully" << std::endl;
+					std::cout << "\t> Connection established." << std::endl;
 					break;
 				}
 
 				case PacketType::CANNOTCONNECT:
 				{
+					std::cout << "\t> Could not connect due to the port being full." << std::endl;
+					std::cout << "\t> Increasing port and trying again." << std::endl;
+
 					_port++;
 					Connect();
 					break;
@@ -89,15 +94,20 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 				case PacketType::CHALLENGE:
 				{
+					std::cout << "\t> Recieved challenge." << std::endl;
+					std::cout << "\t> Attempting to solve." << std::endl;
+
 					int number1;
 					int number2;
 
 					packet >> number1 >> number2;
-
-					int solution = number1 * number2;
-
+					std::cout << "Solve the following math operation: " << number1 << "*" << number2 << std::endl;
+					int clientSolution;
+					solvingChallenge = true;
+					std::cin >> clientSolution;
+					solvingChallenge = false;
 					sf::Packet challengeSolutionPacket;
-					challengeSolutionPacket << (int)PacketType::CHALLENGE << solution;
+					challengeSolutionPacket << (int)PacketType::CHALLENGE << clientSolution;
 
 					Send(challengeSolutionPacket, remoteIp, remotePort, rcvMessage);
 					//_socket.send(challengeSolutionPacket, remoteIp, remotePort);
@@ -107,8 +117,9 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 				case PacketType::CHALLENGEFAILED:
 				{
+					std::cout << "ChallengeFailed" << std::endl;
 					sf::Packet retryChallengePacket;
-					retryChallengePacket << (int)PacketType::RETRYCHALLENGE;
+					retryChallengePacket << (int)PacketType::CHALLENGE;
 
 					Send(retryChallengePacket, remoteIp, remotePort, rcvMessage);
 					//_socket.send(retryChallengePacket, remoteIp, remotePort);
@@ -133,6 +144,8 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 		}
 		else if (status == sf::Socket::Disconnected)
 		{
+			std::cout << "TEST" << std::endl;
+
 			std::cout << "Disconnected: " << _port << std::endl;
 		}
 		else
@@ -149,18 +162,19 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 UDPClientManager::Status UDPClientManager::Connect()
 {
+	sf::Socket::Status status = _socket.bind(_port);
+
+	while (status != sf::Socket::Status::Done)
+	{
+		_port++;
+
+		status = _socket.bind(_port);
+	}
+
 	sf::Packet packet;
 	packet << (int)PacketType::TRYCONNECTION;
 
-	UDPClientManager::Status status = Send(packet, _ip, _port, new std::string()); // CUIDAO! Preguntar això.
-
-	sf::Socket::Status status = _socket.send(packet, _ip, _port);
-
-	if (status != UDPClientManager::Status::Done)
-	{
-		std::cout << "\t> Status!=Done attempting to connect to:\n\t\t> Server";
-		return Status::Error;
-	}
+	_socket.send(packet, sf::IpAddress("127.0.0.1"), 5000);
 
 	return Status::Done;
 }

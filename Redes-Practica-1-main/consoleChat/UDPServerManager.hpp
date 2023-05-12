@@ -17,7 +17,10 @@ public:
         unsigned int id; // NEW: added this
         int ts; // NEW: added this
         
-        Client(std::string _username, sf::IpAddress _ip, unsigned short _port, int _id) : username(_username), ip(_ip), port(_port), id(_id) {}
+        Client() = default;
+
+        Client(std::string _username, sf::IpAddress _ip, unsigned short _port, int _id)
+            : username(_username), ip(_ip), port(_port), id(_id) {}
     };
 
     struct NewConnection
@@ -30,15 +33,10 @@ public:
         int challenge2;
         int solution;
 
+        NewConnection() = default;
+
         NewConnection(sf::IpAddress _ip, unsigned short _port, std::string _username, int _challenge1, int _challenge2, int _solution)
-        {
-            ip = _ip;
-            port = _port;
-            username = _username;
-            challenge1 = _challenge1;
-            challenge2 = _challenge2;
-            solution = _solution;
-        }
+            : ip(_ip), port(_port), username(_username), challenge1(_challenge1), challenge2(_challenge2), solution(_solution) {}
     };
 
 private:
@@ -82,7 +80,7 @@ public:
 
 // ------ METHODS: ------
     Status Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage);
-    void Receive(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* rcvMessage);
+    void Receive(sf::Packet& packet, std::string* rcvMessage);
     Status Connect();
     Status Listen();
     void Disconnect();

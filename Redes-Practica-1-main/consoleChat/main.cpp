@@ -6,14 +6,17 @@
 #include "UDPServerManager.hpp"
 #include "UDPClientManager.hpp"
 
-void GetLineFromCin_t(std::string* mssg)
+void GetLineFromCin_t(std::string* mssg, UDPClientManager* client)
 {
 	std::string line;
 
 	while (true)
 	{
-		std::getline(std::cin, line);
-		mssg->assign(line);
+		if (!client->solvingChallenge) {
+			std::getline(std::cin, line);
+			mssg->assign(line);
+		}
+		
 	}
 }
 
@@ -57,10 +60,10 @@ void main()
 		std::string* _rcvMessageServer = new std::string();
 
 		// Threads:
-		//std::thread rcv_t(&TCPSocketManager::Receive, _serverSocketManager, _inServerPacket, _rcvMessageServer);
-		//rcv_t.detach();
+		std::thread rcv_t_server(&UDPServerManager::Receive, _serverSocketManager, _inServerPacket, _rcvMessageServer);
+		rcv_t_server.detach();
 
-		std::thread read_console_t(GetLineFromCin_t, _sendMessageServer);
+		std::thread read_console_t(GetLineFromCin_t, _sendMessageServer, _clientSocketManager);
 		read_console_t.detach();
 
 		// Application loop:
@@ -135,21 +138,23 @@ void main()
 			return;
 		}
 		
+		//system("cls");
+
 		std::cout << "> CLIENT:\n" << std::endl;
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "> Successfully connected to server.\n" << std::endl;
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "\t> Message to send to the server: ";
 
-		sf::Packet _inServerPacket, _outPacket;
+		sf::Packet _inClientPacket, _outPacket;
 		std::string* _sendMessageClient = new std::string();
 		std::string* _rcvMessageClient = new std::string();
 
 		// Threads:
-		std::thread rcv_t_client(&UDPClientManager::Receive, _clientSocketManager, _inServerPacket, _rcvMessageClient);
+		std::thread rcv_t_client(&UDPClientManager::Receive, _clientSocketManager, _inClientPacket, _rcvMessageClient);
 		rcv_t_client.detach();
 		
-		std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient);
+		std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient, _clientSocketManager);
 		read_console_t_client.detach();
 
 		while (true)
@@ -163,7 +168,7 @@ void main()
 					break;
 				}
 
-				system("cls");
+				//system("cls");
 
 				std::cout << "> CLIENT:\n" << std::endl;
 				std::cout << "--------------------------------------------------\n" << std::endl;
@@ -177,7 +182,7 @@ void main()
 			// Logic for sending:
 			if (_sendMessageClient->size() > 0)
 			{
-				if (_clientSocketManager->Send(_inServerPacket, _serverSocketManager->GetIp(), _serverSocketManager->GetPort(), _sendMessageClient) == UDPClientManager::Status::Disconnected)
+				if (_clientSocketManager->Send(_inClientPacket, _serverSocketManager->GetIp(), _serverSocketManager->GetPort(), _sendMessageClient) == UDPClientManager::Status::Disconnected)
 				{
 					_sendMessageClient->clear();
 					_clientSocketManager->Disconnect();

@@ -54,6 +54,7 @@ private:
     };
 
 public:
+    bool solvingChallenge = false;
     // ------ CONSTRUCTOR: ------
     UDPClientManager(sf::IpAddress ip) : _port(5001), _ip(ip) {}
 

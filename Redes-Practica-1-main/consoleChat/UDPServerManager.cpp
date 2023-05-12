@@ -53,13 +53,18 @@ UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddres
 	return tempStatus;
 }
 
-void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsigned short remotePort, std::string* rcvMessage)  // No ho podem passar per referència,
+void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // No ho podem passar per referència,
 																																// el valor de rcvMessage no s'aplica fora de la funció.
 {
+	sf::IpAddress remoteIp;
+	unsigned short remotePort;
+
 	std::string mssg_temp;
 
 	while (true)
 	{
+		std::cout << "La pregunta que jo em faig" << std::endl;
+
 		sf::Socket::Status status = _socket.receive(packet, remoteIp, remotePort);
 
 		if (status == sf::Socket::Done)
@@ -72,34 +77,42 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 			{
 				case PacketType::TRYCONNECTION:
 				{
-					bool alreadyExists = false;
+					std::cout << "TRYCONNECTION 33" << std::endl;
+
 					sf::Packet connectionPacket;
-					for (auto it = _clients.begin(); it != _clients.end();++it) {
-						if (it->first.second == remotePort) {
-							alreadyExists = true;
-						}
-					}
-					if (alreadyExists) {
-						connectionPacket << (int)PacketType::CANNOTCONNECT;
-					}
-					else
-					{
-						connectionPacket << (int)PacketType::CHALLENGE;
+					connectionPacket << (int)PacketType::CHALLENGE;
 
-						// Create challenge
-						int number1 = 5;
-						int number2 = 5;
+					// Create challenge
+					int number1 = 5;
+					int number2 = 5;
 
-						connectionPacket << number1 << number2;
+					connectionPacket << number1 << number2;
 
-						int solution = number1 * number2;
+					int solution = number1 * number2;
 	
-						// Add newConnection to map
-						std::pair<sf::IpAddress, unsigned short> _ipAndPort = std::make_pair(remoteIp, remotePort);
-						NewConnection _newConnection(remoteIp, remotePort, "", number1, number2, solution);
+					// Add newConnection to map
+					std::pair<sf::IpAddress, unsigned short> _ipAndPort = std::make_pair(remoteIp, remotePort);
+					NewConnection _newConnection(remoteIp, remotePort, "", number1, number2, solution);
 
-						_newConnections[_ipAndPort] = _newConnection;
-					}
+					_newConnections[_ipAndPort] = _newConnection;
+
+					Send(connectionPacket, remoteIp, remotePort, rcvMessage);
+					break;
+				}
+				case PacketType::RETRYCHALLENGE:
+				{
+					std::cout << "TRYCONNECTION 34" << std::endl;
+
+					sf::Packet connectionPacket;
+					connectionPacket << (int)PacketType::CHALLENGE;
+
+					// Create challenge
+					int number1 = 5;
+					int number2 = 5;
+
+					connectionPacket << number1 << number2;
+
+					int solution = number1 * number2;
 
 					Send(connectionPacket, remoteIp, remotePort, rcvMessage);
 					break;
@@ -132,6 +145,7 @@ void UDPServerManager::Receive(sf::Packet& packet, sf::IpAddress remoteIp, unsig
 
 					break;
 				}
+				
 
 				case PacketType::MESSAGE:
 				{
