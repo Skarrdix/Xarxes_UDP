@@ -1,12 +1,21 @@
 #include "UDPServerManager.hpp"
-
+#define PKT_LOSS_PROB 5 // 5 sobre 1000
 UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
 	// Fill packet with data:
 	packet << *sendMessage;
-
+	sf::Socket::Status status;
 	// Send the data to the socket:
-	sf::Socket::Status status = _socket.send(packet, ip, port);
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+	status = _socket.send(packet, ip, port);
+	else
+		status = sf::Socket::Status::Disconnected;
+
+	if (status != sf::Socket::Done)
+	{
+		std::cout << "\t> A packet has been lost.";
+		return Status::Error;
+	}
 
 	packet.clear();
 
@@ -128,6 +137,7 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 
 					if (_newConnections[_remotePair].solution == playerSolution)
 					{
+						std::cout << "HOLAAAAAA"<<std::endl;
 						_newConnections.erase(_remotePair);
 						
 						// CUIDAO! Ara mateix tots els clients es diuen igual.
@@ -186,12 +196,16 @@ UDPServerManager::Status UDPServerManager::Connect()
 {
 	sf::Packet packet;
 	packet << (int)PacketType::TRYCONNECTION;
+	sf::Socket::Status status;
 
-	sf::Socket::Status status = _socket.send(packet, _ip, _port);
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+		status = _socket.send(packet, _ip, _port);
+	else
+		status = sf::Socket::Status::Disconnected;
 
 	if (status != sf::Socket::Done)
 	{
-		std::cout << "\t> Status!=Done attempting to connect to:\n\t\t> Server";
+		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
 	}
 

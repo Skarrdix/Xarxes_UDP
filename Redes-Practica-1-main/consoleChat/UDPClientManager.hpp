@@ -4,7 +4,8 @@
 #include <iostream>
 #include <list>
 #include <map>
-
+#include "PacketLoss.h"
+#include <chrono>
 class UDPClientManager
 {
 public:
@@ -22,6 +23,7 @@ public:
         }
     };
 
+
 private:
     // ------ VARIABLES: ------
     sf::UdpSocket _socket;
@@ -29,7 +31,7 @@ private:
     sf::IpAddress _ip;
     std::string mssg;
     std::map<std::pair<sf::IpAddress, unsigned short>, Client> _clients; // NEW: added this
-
+    PacketLoss probLossManager;
 // ------ ENUM: ------
 public:
     enum class Status
@@ -39,7 +41,12 @@ public:
         Connected,          // The socket is connected and ready to work
         Disconnected        // The TCP socket is disconnected
     };
-
+    struct PacketInfo
+    {
+        int id;
+        sf::Packet pakcet;
+        std::chrono::duration<float, std::milli> timeSend;
+    };
 private:
     enum class PacketType
     {
@@ -65,6 +72,7 @@ public:
     void Disconnect();
 
 private:
+    std::vector<PacketInfo> packetArray;
     unsigned short GetLocalPort();
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();

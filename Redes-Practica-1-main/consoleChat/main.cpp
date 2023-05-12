@@ -3,6 +3,7 @@
 #include <SFML\Network.hpp>
 #include <iostream>
 #include <thread>
+#include <time.h>
 #include "UDPServerManager.hpp"
 #include "UDPClientManager.hpp"
 
@@ -16,12 +17,13 @@ void GetLineFromCin_t(std::string* mssg, UDPClientManager* client)
 			std::getline(std::cin, line);
 			mssg->assign(line);
 		}
-		
 	}
 }
 
 void main()
 {
+	srand(time(NULL));
+
 	int server_mode;
 	std::string mode_str;
 

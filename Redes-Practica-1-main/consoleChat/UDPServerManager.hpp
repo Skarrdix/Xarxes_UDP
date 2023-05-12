@@ -4,7 +4,8 @@
 #include <iostream>
 #include <list>
 #include <map>
-
+#include "PacketLoss.h"
+#include <chrono>
 class UDPServerManager
 {
 public:
@@ -39,13 +40,21 @@ public:
             : ip(_ip), port(_port), username(_username), challenge1(_challenge1), challenge2(_challenge2), solution(_solution) {}
     };
 
+    struct PacketInfo
+    {
+        int id;
+        sf::Packet pakcet;
+        std::chrono::duration<float, std::milli> timeSend;
+    };
+
+
 private:
 // ------ VARIABLES: ------
     sf::UdpSocket _socket;
     unsigned short _port;
     sf::IpAddress _ip;
     int _nextClientId;
-
+    PacketLoss probLossManager;
     std::map<std::pair<sf::IpAddress, unsigned short>, NewConnection> _newConnections;
 
 public:
@@ -86,6 +95,7 @@ public:
     void Disconnect();
 
 public:
+    std::vector<PacketInfo> packetArray;
     unsigned short GetPort();
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();

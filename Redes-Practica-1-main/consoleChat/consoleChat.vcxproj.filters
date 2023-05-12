@@ -24,12 +24,18 @@
     <ClCompile Include="UDPClientManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PacketLoss.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UDPServerManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UDPClientManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketLoss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,12 +1,24 @@
 #include "UDPClientManager.hpp"
 
+#define PKT_LOSS_PROB 5 // 5 sobre 1000
+
 UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
 	// Fill packet with data:
 	packet << *sendMessage;
-
+	sf::Socket::Status status;
 	// Send the data to the socket:
-	sf::Socket::Status status = _socket.send(packet, ip, port);
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+		status = _socket.send(packet, ip, port);
+	else
+		status = sf::Socket::Status::Disconnected;
+
+	if (status != sf::Socket::Done)
+	{
+		std::cout << "\t> A packet has been lost.";
+		return Status::Error;
+	}
+
 
 	packet.clear();
 
@@ -105,10 +117,10 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					int clientSolution;
 					solvingChallenge = true;
 					std::cin >> clientSolution;
-					solvingChallenge = false;
+					
 					sf::Packet challengeSolutionPacket;
 					challengeSolutionPacket << (int)PacketType::CHALLENGE << clientSolution;
-
+					solvingChallenge = false;
 					Send(challengeSolutionPacket, remoteIp, remotePort, rcvMessage);
 					//_socket.send(challengeSolutionPacket, remoteIp, remotePort);
 
@@ -119,7 +131,7 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 				{
 					std::cout << "ChallengeFailed" << std::endl;
 					sf::Packet retryChallengePacket;
-					retryChallengePacket << (int)PacketType::CHALLENGE;
+					retryChallengePacket << (int)PacketType::RETRYCHALLENGE;
 
 					Send(retryChallengePacket, remoteIp, remotePort, rcvMessage);
 					//_socket.send(retryChallengePacket, remoteIp, remotePort);
@@ -174,7 +186,17 @@ UDPClientManager::Status UDPClientManager::Connect()
 	sf::Packet packet;
 	packet << (int)PacketType::TRYCONNECTION;
 
-	_socket.send(packet, sf::IpAddress("127.0.0.1"), 5000);
+	if(probLossManager.generate_prob() > PKT_LOSS_PROB)
+		_socket.send(packet, sf::IpAddress("127.0.0.1"), 5000);
+	else
+		status = sf::Socket::Status::Disconnected;
+
+	if (status != sf::Socket::Done)
+	{
+		std::cout << "\t> A packet has been lost.";
+		return Status::Error;
+	}
+
 
 	return Status::Done;
 }
