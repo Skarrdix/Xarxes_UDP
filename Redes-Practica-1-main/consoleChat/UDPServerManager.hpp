@@ -4,8 +4,9 @@
 #include <iostream>
 #include <list>
 #include <map>
-#include "PacketLoss.h"
 #include <chrono>
+#include "PacketLoss.h"
+
 class UDPServerManager
 {
 public:
@@ -39,14 +40,18 @@ public:
         NewConnection(sf::IpAddress _ip, unsigned short _port, std::string _username, int _challenge1, int _challenge2, int _solution)
             : ip(_ip), port(_port), username(_username), challenge1(_challenge1), challenge2(_challenge2), solution(_solution) {}
     };
-
-    struct PacketInfo
+    
+    struct PacketInfo // Serveix tant per paquets enviats com pels paquets de tipus ACK.
     {
         int id;
-        sf::Packet pakcet;
-        std::chrono::duration<float, std::milli> timeSend;
-    };
+        sf::Packet packet;
+        std::chrono::system_clock::time_point timeSend; // TimeStamp
+        sf::IpAddress remoteIp;
+        unsigned short remotePort;
 
+        PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
+            : id(_id), packet(_packet), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
+    };
 
 private:
 // ------ VARIABLES: ------
@@ -56,6 +61,7 @@ private:
     int _nextClientId;
     PacketLoss probLossManager;
     std::map<std::pair<sf::IpAddress, unsigned short>, NewConnection> _newConnections;
+    int packetCount;
 
 public:
     std::map<std::pair<sf::IpAddress, unsigned short>, Client> _clients; // NEW: added this
@@ -80,6 +86,7 @@ private:
         CHALLENGEFAILED,    // Captcha failed
         RETRYCHALLENGE,     // Retry challenge
         MESSAGE,            // Packet to send a message to the global chat
+        ACK,
         DISCONNECT          // Packet to disconnect
     };
 
@@ -95,8 +102,10 @@ public:
     void Disconnect();
 
 public:
-    std::vector<PacketInfo> packetArray;
+    std::map<int, PacketInfo> packetMap;
+    std::vector<int> packetsToDelete;
     unsigned short GetPort();
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();
+    void CheckTimeStamp();
 };

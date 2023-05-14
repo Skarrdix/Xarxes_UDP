@@ -1,17 +1,23 @@
 #include "UDPServerManager.hpp"
-#define PKT_LOSS_PROB 5 // 5 sobre 1000
+
+#define PKT_LOSS_PROB 5 // 5 sobre 1000 -> 0.5%
+#define PACKET_TIMEOUT_IN_MILLIS 1000 // milliseconds
+
 UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
 	// Fill packet with data:
 	packet << *sendMessage;
 	sf::Socket::Status status;
+	PacketInfo packetInfo = PacketInfo{ packetCount,packet,std::chrono::system_clock::now(),ip,port };
+
+	packetMap[packetCount++] = packetInfo;
 	// Send the data to the socket:
 	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
-	status = _socket.send(packet, ip, port);
+		status = _socket.send(packet, ip, port);
 	else
 		status = sf::Socket::Status::Disconnected;
 
-	if (status != sf::Socket::Done)
+	if (status != sf::Socket::Status::Done)
 	{
 		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
@@ -63,7 +69,7 @@ UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddres
 }
 
 void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // No ho podem passar per referència,
-																																// el valor de rcvMessage no s'aplica fora de la funció.
+																			 // el valor de rcvMessage no s'aplica fora de la funció.
 {
 	sf::IpAddress remoteIp;
 	unsigned short remotePort;
@@ -89,7 +95,9 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					std::cout << "TRYCONNECTION 33" << std::endl;
 
 					sf::Packet connectionPacket;
+					connectionPacket << packetCount++;
 					connectionPacket << (int)PacketType::CHALLENGE;
+					
 
 					// Create challenge
 					int number1 = 5;
@@ -106,6 +114,8 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					_newConnections[_ipAndPort] = _newConnection;
 
 					Send(connectionPacket, remoteIp, remotePort, rcvMessage);
+
+
 					break;
 				}
 				case PacketType::RETRYCHALLENGE:
@@ -170,6 +180,15 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					_clients.erase(keyToErase);
 					break;
 				}
+				case PacketType::ACK:
+				{
+					int tempID;
+					packet >> tempID;
+					packetMap.erase(tempID);
+
+
+					break;
+				}
 
 				default:
 					break;
@@ -195,15 +214,16 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 UDPServerManager::Status UDPServerManager::Connect()
 {
 	sf::Packet packet;
+	packet << packetCount++;
 	packet << (int)PacketType::TRYCONNECTION;
-	sf::Socket::Status status;
+	UDPServerManager::Status status;
 
 	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
-		status = _socket.send(packet, _ip, _port);
+		status = Send(packet, _ip, _port, new std::string());
 	else
-		status = sf::Socket::Status::Disconnected;
+		status = UDPServerManager::Status::Error;
 
-	if (status != sf::Socket::Done)
+	if (status != UDPServerManager::Status::Done)
 	{
 		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
@@ -262,4 +282,35 @@ sf::IpAddress UDPServerManager::GetIp()
 sf::UdpSocket* UDPServerManager::GetSocket()
 {
 	return &_socket;
+}
+
+void UDPServerManager::CheckTimeStamp()
+{
+	// vector<int>
+
+	auto current_time = std::chrono::system_clock::now();
+
+	while (true)
+	{
+		if (packetMap.size() > 0) {
+			for (auto packet : packetMap)
+			{
+				//check if we need to resend the packet
+				if (current_time - packet.second.timeSend > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
+				{
+					Send(packet.second.packet,packet.second.remoteIp,packet.second.remotePort,new std::string);
+					packet.second.timeSend = std::chrono::system_clock::now();
+				}
+			}
+		}
+
+		//delete confirmed packets
+		if (packetsToDelete.size() > 0) {
+			for (int id : packetsToDelete) {
+				packetMap.erase(id);
+			}
+			packetsToDelete.clear();
+		}
+
+	}
 }

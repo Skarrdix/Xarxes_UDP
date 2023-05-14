@@ -82,6 +82,8 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 			std::cout << "HA ARRIBAT UN PAQUET AL CLIENT" << std::endl;
 
 			int type;
+			int id;
+			packet >> id;
 			packet >> type;
 
 			// Aquí gestionarem tots els diferents casos possibles de missatge (PacketType):
@@ -186,8 +188,8 @@ UDPClientManager::Status UDPClientManager::Connect()
 	sf::Packet packet;
 	packet << (int)PacketType::TRYCONNECTION;
 
-	if(probLossManager.generate_prob() > PKT_LOSS_PROB)
-		_socket.send(packet, sf::IpAddress("127.0.0.1"), 5000);
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+		Send(packet, sf::IpAddress("127.0.0.1"), 5000, new std::string());
 	else
 		status = sf::Socket::Status::Disconnected;
 
