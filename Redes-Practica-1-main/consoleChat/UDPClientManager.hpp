@@ -6,6 +6,8 @@
 #include <map>
 #include "PacketLoss.h"
 #include <chrono>
+#include <thread>
+
 class UDPClientManager
 {
 public:
@@ -21,8 +23,25 @@ public:
         Client(std::string _username) {
             username = _username;
         }
+        Client(std::string _username, sf::IpAddress _ip, unsigned short _port, int _id)
+            : username(_username), ip(_ip), port(_port), id(_id) {}
     };
 
+    struct PacketInfo // Serveix tant per paquets enviats com pels paquets de tipus ACK.
+    {
+        int id;
+        sf::Packet packet;
+        std::chrono::system_clock::time_point firstTimeSend; // ADDED THIS! // First TimeStamp
+        std::chrono::system_clock::time_point timeSend; // Latest TimeStamp
+        sf::IpAddress remoteIp;
+        unsigned short remotePort;
+
+        PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _firstTimeSend, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
+            : id(_id), packet(_packet), firstTimeSend(_firstTimeSend), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
+
+        PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
+            : id(_id), packet(_packet), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
+    };
 
 private:
     // ------ VARIABLES: ------
@@ -57,23 +76,28 @@ private:
         CHALLENGEFAILED,    // Captcha failed
         RETRYCHALLENGE,     // Retry challenge
         MESSAGE,            // Packet to send a message to the global chat
+        ACK,
         DISCONNECT          // Packet to disconnect
     };
 
 public:
     bool solvingChallenge = false;
     // ------ CONSTRUCTOR: ------
-    UDPClientManager(sf::IpAddress ip) : _port(5001), _ip(ip) {}
+    UDPClientManager(unsigned short port, sf::IpAddress ip);
 
     // ------ METHODS: ------
     Status Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage);
+    Status ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage);
     void Receive(sf::Packet& packet, std::string* rcvMessage);
     Status Connect();
     void Disconnect();
 
-private:
+public:
+    std::map<int, PacketInfo> packetMap;
     std::vector<PacketInfo> packetArray;
+    std::vector<int> packetsToDelete;
     unsigned short GetLocalPort();
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();
+    void CheckTimeStamp();
 };

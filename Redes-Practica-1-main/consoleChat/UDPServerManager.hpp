@@ -5,6 +5,7 @@
 #include <list>
 #include <map>
 #include <chrono>
+#include <thread>
 #include "PacketLoss.h"
 
 class UDPServerManager
@@ -45,9 +46,13 @@ public:
     {
         int id;
         sf::Packet packet;
-        std::chrono::system_clock::time_point timeSend; // TimeStamp
+        std::chrono::system_clock::time_point firstTimeSend; // ADDED THIS! // First TimeStamp
+        std::chrono::system_clock::time_point timeSend; // Latest TimeStamp
         sf::IpAddress remoteIp;
         unsigned short remotePort;
+
+        PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _firstTimeSend, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
+            : id(_id), packet(_packet), firstTimeSend(_firstTimeSend), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
 
         PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
             : id(_id), packet(_packet), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
@@ -92,10 +97,11 @@ private:
 
 public:
 // ------ CONSTRUCTOR: ------
-    UDPServerManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip), _nextClientId(0) {}
+    UDPServerManager(unsigned short port, sf::IpAddress ip);
 
 // ------ METHODS: ------
     Status Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage);
+    Status ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage);
     void Receive(sf::Packet& packet, std::string* rcvMessage);
     Status Connect();
     Status Listen();

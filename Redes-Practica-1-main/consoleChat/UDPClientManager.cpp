@@ -1,6 +1,13 @@
 #include "UDPClientManager.hpp"
 
 #define PKT_LOSS_PROB 5 // 5 sobre 1000
+#define PACKET_TIMEOUT_IN_MILLIS 1000 // milliseconds
+
+UDPClientManager::UDPClientManager(unsigned short port, sf::IpAddress ip) : _port(5001), _ip(ip)
+{
+	std::thread timeStamp_t(&UDPClientManager::CheckTimeStamp); // ADDED THIS!
+	timeStamp_t.detach(); // ADDED THIS!
+}
 
 UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
@@ -18,7 +25,6 @@ UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddres
 		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
 	}
-
 
 	packet.clear();
 
@@ -65,8 +71,73 @@ UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddres
 	return tempStatus;
 }
 
+UDPClientManager::Status UDPClientManager::ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
+{
+	// Fill packet with data:
+	packet << *sendMessage;
+	sf::Socket::Status status;
+	PacketInfo packetInfo = PacketInfo{ packetId, packet, std::chrono::system_clock::now(), ip, port };
+
+	packetMap[packetId] = packetInfo;
+	// Send the data to the socket:
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+		status = _socket.send(packet, ip, port);
+	else
+		status = sf::Socket::Status::Disconnected;
+
+	if (status != sf::Socket::Status::Done)
+	{
+		std::cout << "\t> A packet has been lost.";
+		return Status::Error;
+	}
+
+	packet.clear();
+
+	Status tempStatus;
+
+	switch (status)
+	{
+	case sf::Socket::Done:
+		tempStatus = Status::Done;
+		break;
+
+	case sf::Socket::NotReady:
+		std::cout << "Error: NotReady.";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+
+	case sf::Socket::Partial:
+		std::cout << "Error: Partial.";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+
+	case sf::Socket::Disconnected: // Per com hem fet el codi, retornar Status::Disconnected fa que el servidor es tanqui.
+								   // per això ho canviem per Status::Error.
+		std::cout << "Error: cliente desconectado.";
+		tempStatus = Status::Error;
+		break;
+
+	case sf::Socket::Error:
+		std::cout << "Error: al enviar paquete.";
+		tempStatus = Status::Error;
+		break;
+
+	default:
+		std::cout << "Error: default";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+	}
+
+	// Check if the message is "exit" or "Exit":
+	if (*sendMessage == "exit" || *sendMessage == "Exit")
+		return Status::Disconnected;
+
+	// Return:
+	return tempStatus;
+}
+// ADDED THIS! */
 void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // No ho podem passar per referència,
-																																// el valor de rcvMessage no s'aplica fora de la funció.
+																			 // el valor de rcvMessage no s'aplica fora de la funció.
 {
 	sf::IpAddress remoteIp;
 	unsigned short remotePort;
@@ -222,4 +293,37 @@ sf::IpAddress UDPClientManager::GetIp()
 sf::UdpSocket* UDPClientManager::GetSocket()
 {
 	return &_socket;
+}
+void UDPClientManager::CheckTimeStamp()
+{
+	// vector<int>
+
+	auto current_time = std::chrono::system_clock::now();
+
+	while (true)
+	{
+		if (packetMap.size() > 0) {
+			for (auto packet : packetMap)
+			{
+				//check if we need to resend the packet
+				if (current_time - packet.second.timeSend > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
+				{
+					ReSend(packet.second.packet, packet.first, packet.second.remoteIp, packet.second.remotePort, new std::string()); // ADDED THIS!
+					packet.second.timeSend = std::chrono::system_clock::now();
+				}
+				else // ADDED THIS!
+					packetsToDelete.push_back(packet.first); // ADDED THIS!
+			}
+		}
+
+		//delete confirmed packet
+		if (packetsToDelete.size() > 0)
+		{
+			for (int id : packetsToDelete)
+			{
+				packetMap.erase(id);
+			}
+			packetsToDelete.clear();
+		}
+	}
 }

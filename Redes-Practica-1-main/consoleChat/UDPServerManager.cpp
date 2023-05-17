@@ -3,12 +3,18 @@
 #define PKT_LOSS_PROB 5 // 5 sobre 1000 -> 0.5%
 #define PACKET_TIMEOUT_IN_MILLIS 1000 // milliseconds
 
+UDPServerManager::UDPServerManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip), _nextClientId(0)
+{
+	std::thread timeStamp_t(&UDPServerManager::CheckTimeStamp); // ADDED THIS!
+	timeStamp_t.detach(); // ADDED THIS!
+}
+
 UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
 	// Fill packet with data:
 	packet << *sendMessage;
 	sf::Socket::Status status;
-	PacketInfo packetInfo = PacketInfo{ packetCount,packet,std::chrono::system_clock::now(),ip,port };
+	PacketInfo packetInfo = PacketInfo{ packetCount, packet, std::chrono::system_clock::now(), std::chrono::system_clock::now(), ip, port };
 
 	packetMap[packetCount++] = packetInfo;
 	// Send the data to the socket:
@@ -68,6 +74,73 @@ UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddres
 	return tempStatus;
 }
 
+// ADDED THIS! /*
+UDPServerManager::Status UDPServerManager::ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
+{
+	// Fill packet with data:
+	packet << *sendMessage;
+	sf::Socket::Status status;
+	PacketInfo packetInfo = PacketInfo{ packetId, packet, std::chrono::system_clock::now(), ip, port };
+
+	packetMap[packetId] = packetInfo;
+	// Send the data to the socket:
+	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+		status = _socket.send(packet, ip, port);
+	else
+		status = sf::Socket::Status::Disconnected;
+
+	if (status != sf::Socket::Status::Done)
+	{
+		std::cout << "\t> A packet has been lost.";
+		return Status::Error;
+	}
+
+	packet.clear();
+
+	Status tempStatus;
+
+	switch (status)
+	{
+	case sf::Socket::Done:
+		tempStatus = Status::Done;
+		break;
+
+	case sf::Socket::NotReady:
+		std::cout << "Error: NotReady.";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+
+	case sf::Socket::Partial:
+		std::cout << "Error: Partial.";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+
+	case sf::Socket::Disconnected: // Per com hem fet el codi, retornar Status::Disconnected fa que el servidor es tanqui.
+								   // per això ho canviem per Status::Error.
+		std::cout << "Error: cliente desconectado.";
+		tempStatus = Status::Error;
+		break;
+
+	case sf::Socket::Error:
+		std::cout << "Error: al enviar paquete.";
+		tempStatus = Status::Error;
+		break;
+
+	default:
+		std::cout << "Error: default";
+		tempStatus = Status::Error; // Since we do not know how sf:Socket::Status works, we return Error directly.
+		break;
+	}
+
+	// Check if the message is "exit" or "Exit":
+	if (*sendMessage == "exit" || *sendMessage == "Exit")
+		return Status::Disconnected;
+
+	// Return:
+	return tempStatus;
+}
+// ADDED THIS! */
+
 void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // No ho podem passar per referència,
 																			 // el valor de rcvMessage no s'aplica fora de la funció.
 {
@@ -114,7 +187,6 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					_newConnections[_ipAndPort] = _newConnection;
 
 					Send(connectionPacket, remoteIp, remotePort, rcvMessage);
-
 
 					break;
 				}
@@ -180,12 +252,13 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 					_clients.erase(keyToErase);
 					break;
 				}
+
 				case PacketType::ACK:
 				{
 					int tempID;
 					packet >> tempID;
-					packetMap.erase(tempID);
 
+					packetsToDelete.push_back(tempID); // ADDED THIS! // changed "packetMap.erase(tempID);" to current code
 
 					break;
 				}
@@ -195,7 +268,6 @@ void UDPServerManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 			}
 		}
 		else if (status == sf::Socket::Disconnected)
-
 		{
 			std::cout << "Disconnected: " << _port << std::endl;
 		}
@@ -298,19 +370,22 @@ void UDPServerManager::CheckTimeStamp()
 				//check if we need to resend the packet
 				if (current_time - packet.second.timeSend > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
 				{
-					Send(packet.second.packet,packet.second.remoteIp,packet.second.remotePort,new std::string);
+					ReSend(packet.second.packet, packet.first, packet.second.remoteIp, packet.second.remotePort, new std::string()); // ADDED THIS!
 					packet.second.timeSend = std::chrono::system_clock::now();
 				}
+				else // ADDED THIS!
+					packetsToDelete.push_back(packet.first); // ADDED THIS!
 			}
 		}
 
-		//delete confirmed packets
-		if (packetsToDelete.size() > 0) {
-			for (int id : packetsToDelete) {
+		//delete confirmed packet
+		if (packetsToDelete.size() > 0)
+		{
+			for (int id : packetsToDelete)
+			{
 				packetMap.erase(id);
 			}
 			packetsToDelete.clear();
 		}
-
 	}
 }
