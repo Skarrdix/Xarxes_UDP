@@ -38,7 +38,7 @@ void main()
 	server_mode = std::stoi(mode_str);
 
 	UDPServerManager* _serverSocketManager = new UDPServerManager(5000, sf::IpAddress("127.0.0.1"));
-	UDPClientManager* _clientSocketManager = new UDPClientManager(sf::IpAddress("127.0.0.1"));
+	UDPClientManager* _clientSocketManager = new UDPClientManager(5001,sf::IpAddress("127.0.0.1"));
 
 	if (server_mode == 1) // Server
 	{

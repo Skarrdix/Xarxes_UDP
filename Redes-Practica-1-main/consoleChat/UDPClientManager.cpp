@@ -1,11 +1,12 @@
 #include "UDPClientManager.hpp"
 
-#define PKT_LOSS_PROB 5 // 5 sobre 1000
+#define PKT_LOSS_PROB 250 // 5 sobre 1000
 #define PACKET_TIMEOUT_IN_MILLIS 1000 // milliseconds
 
-UDPClientManager::UDPClientManager(unsigned short port, sf::IpAddress ip) : _port(5001), _ip(ip)
+UDPClientManager::UDPClientManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip)
 {
-	std::thread timeStamp_t(&UDPClientManager::CheckTimeStamp); // ADDED THIS!
+	packetCount = 0;
+	std::thread timeStamp_t(&UDPClientManager::CheckTimeStamp,this); // ADDED THIS!
 	timeStamp_t.detach(); // ADDED THIS!
 }
 
@@ -14,13 +15,21 @@ UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddres
 	// Fill packet with data:
 	packet << *sendMessage;
 	sf::Socket::Status status;
+	int probabilty = probLossManager.generate_prob();
+	std::cout << "probability: " << probabilty << std::endl;
+	PacketInfo packetInfo = PacketInfo{ packetCount, packet, std::chrono::system_clock::now(), std::chrono::system_clock::now(), ip, port };
+	packetMap[packetCount++] = packetInfo;
 	// Send the data to the socket:
-	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+	if (probabilty > PKT_LOSS_PROB) 
+	{
 		status = _socket.send(packet, ip, port);
+	}
 	else
-		status = sf::Socket::Status::Disconnected;
+		status = sf::Socket::Status::Error;
 
-	if (status != sf::Socket::Done)
+
+
+	if (status == sf::Socket::Error)
 	{
 		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
@@ -73,6 +82,8 @@ UDPClientManager::Status UDPClientManager::Send(sf::Packet& packet, sf::IpAddres
 
 UDPClientManager::Status UDPClientManager::ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
+
+	std::cout << "RESEND" << std::endl;
 	// Fill packet with data:
 	packet << *sendMessage;
 	sf::Socket::Status status;
@@ -222,6 +233,15 @@ void UDPClientManager::Receive(sf::Packet& packet, std::string* rcvMessage)  // 
 				{
 					break;
 				}
+				case PacketType::ACK:
+				{
+					int tempID;
+					packet >> tempID;
+
+					packetsToDelete.push_back(tempID); // ADDED THIS! // changed "packetMap.erase(tempID);" to current code
+
+					break;
+				}
 
 				default:
 					break;
@@ -298,16 +318,20 @@ void UDPClientManager::CheckTimeStamp()
 {
 	// vector<int>
 
-	auto current_time = std::chrono::system_clock::now();
 
 	while (true)
 	{
+		
 		if (packetMap.size() > 0) {
+			std::cout << "checking time client" << std::endl;
+
+			auto current_time = std::chrono::system_clock::now();
 			for (auto packet : packetMap)
 			{
 				//check if we need to resend the packet
-				if (current_time - packet.second.timeSend > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
+				if ((current_time - packet.second.timeSend) > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
 				{
+					std::cout << "resending message" << std::endl;
 					ReSend(packet.second.packet, packet.first, packet.second.remoteIp, packet.second.remotePort, new std::string()); // ADDED THIS!
 					packet.second.timeSend = std::chrono::system_clock::now();
 				}

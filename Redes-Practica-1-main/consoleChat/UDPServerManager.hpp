@@ -51,6 +51,8 @@ public:
         sf::IpAddress remoteIp;
         unsigned short remotePort;
 
+        PacketInfo() = default;
+
         PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _firstTimeSend, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
             : id(_id), packet(_packet), firstTimeSend(_firstTimeSend), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
 
@@ -113,5 +115,5 @@ public:
     unsigned short GetPort();
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();
-    void CheckTimeStamp();
+    void CheckTimeStampServer();
 };

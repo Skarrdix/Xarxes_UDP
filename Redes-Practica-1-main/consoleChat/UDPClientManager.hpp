@@ -36,6 +36,8 @@ public:
         sf::IpAddress remoteIp;
         unsigned short remotePort;
 
+        PacketInfo() = default;
+
         PacketInfo(int _id, sf::Packet _packet, std::chrono::system_clock::time_point _firstTimeSend, std::chrono::system_clock::time_point _timeSend, sf::IpAddress _remoteIp, unsigned short _remotePort)
             : id(_id), packet(_packet), firstTimeSend(_firstTimeSend), timeSend(_timeSend), remoteIp(_remoteIp), remotePort(_remotePort) {}
 
@@ -51,6 +53,7 @@ private:
     std::string mssg;
     std::map<std::pair<sf::IpAddress, unsigned short>, Client> _clients; // NEW: added this
     PacketLoss probLossManager;
+    int packetCount;
 // ------ ENUM: ------
 public:
     enum class Status
@@ -60,12 +63,7 @@ public:
         Connected,          // The socket is connected and ready to work
         Disconnected        // The TCP socket is disconnected
     };
-    struct PacketInfo
-    {
-        int id;
-        sf::Packet pakcet;
-        std::chrono::duration<float, std::milli> timeSend;
-    };
+   
 private:
     enum class PacketType
     {

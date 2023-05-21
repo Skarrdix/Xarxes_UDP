@@ -1,11 +1,12 @@
 #include "UDPServerManager.hpp"
 
-#define PKT_LOSS_PROB 5 // 5 sobre 1000 -> 0.5%
+#define PKT_LOSS_PROB 250// 5 sobre 1000 -> 0.5%
 #define PACKET_TIMEOUT_IN_MILLIS 1000 // milliseconds
 
 UDPServerManager::UDPServerManager(unsigned short port, sf::IpAddress ip) : _port(port), _ip(ip), _nextClientId(0)
 {
-	std::thread timeStamp_t(&UDPServerManager::CheckTimeStamp); // ADDED THIS!
+	packetCount = 0;
+	std::thread timeStamp_t(&UDPServerManager::CheckTimeStampServer,this); // ADDED THIS!
 	timeStamp_t.detach(); // ADDED THIS!
 }
 
@@ -15,15 +16,22 @@ UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddres
 	packet << *sendMessage;
 	sf::Socket::Status status;
 	PacketInfo packetInfo = PacketInfo{ packetCount, packet, std::chrono::system_clock::now(), std::chrono::system_clock::now(), ip, port };
-
+	int probabilty = probLossManager.generate_prob();
+	std::cout << "probability: " << probabilty << std::endl;
 	packetMap[packetCount++] = packetInfo;
 	// Send the data to the socket:
-	if (probLossManager.generate_prob() > PKT_LOSS_PROB)
+	if (probabilty > PKT_LOSS_PROB)
+	{
 		status = _socket.send(packet, ip, port);
+		std::cout << "\t> Sending.";
+	}
 	else
-		status = sf::Socket::Status::Disconnected;
+	{
+		status = sf::Socket::Status::Error;
+		std::cout << "\t> Disconecting.";
+	}
 
-	if (status != sf::Socket::Status::Done)
+	if (status == sf::Socket::Status::Error)
 	{
 		std::cout << "\t> A packet has been lost.";
 		return Status::Error;
@@ -77,6 +85,7 @@ UDPServerManager::Status UDPServerManager::Send(sf::Packet& packet, sf::IpAddres
 // ADDED THIS! /*
 UDPServerManager::Status UDPServerManager::ReSend(sf::Packet& packet, int packetId, sf::IpAddress ip, unsigned short port, std::string* sendMessage)
 {
+	std::cout << "Resend" << std::endl;
 	// Fill packet with data:
 	packet << *sendMessage;
 	sf::Socket::Status status;
@@ -356,19 +365,21 @@ sf::UdpSocket* UDPServerManager::GetSocket()
 	return &_socket;
 }
 
-void UDPServerManager::CheckTimeStamp()
+void UDPServerManager::CheckTimeStampServer()
 {
 	// vector<int>
 
-	auto current_time = std::chrono::system_clock::now();
+	
 
 	while (true)
 	{
 		if (packetMap.size() > 0) {
+			std::cout << "checking time server" << std::endl;
+			auto current_time = std::chrono::system_clock::now();
 			for (auto packet : packetMap)
 			{
 				//check if we need to resend the packet
-				if (current_time - packet.second.timeSend > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
+				if ((current_time - packet.second.timeSend) > std::chrono::milliseconds(PACKET_TIMEOUT_IN_MILLIS))
 				{
 					ReSend(packet.second.packet, packet.first, packet.second.remoteIp, packet.second.remotePort, new std::string()); // ADDED THIS!
 					packet.second.timeSend = std::chrono::system_clock::now();
