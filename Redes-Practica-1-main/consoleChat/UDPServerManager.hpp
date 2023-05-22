@@ -116,4 +116,5 @@ public:
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();
     void CheckTimeStampServer();
+    void SendACKToClient(sf::IpAddress remoteIP, unsigned short remotePort,int id);
 };

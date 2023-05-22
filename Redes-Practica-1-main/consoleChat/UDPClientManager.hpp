@@ -98,4 +98,5 @@ public:
     sf::IpAddress GetIp();
     sf::UdpSocket* GetSocket();
     void CheckTimeStamp();
+    void SendACKToServer(sf::IpAddress remoteIP, unsigned short remotePort,int id);
 };

@@ -65,14 +65,14 @@ void main()
 		std::thread rcv_t_server(&UDPServerManager::Receive, _serverSocketManager, _inServerPacket, _rcvMessageServer);
 		rcv_t_server.detach();
 
-		std::thread read_console_t(GetLineFromCin_t, _sendMessageServer, _clientSocketManager);
-		read_console_t.detach();
+		/*std::thread read_console_t(GetLineFromCin_t, _sendMessageServer, _clientSocketManager);
+		read_console_t.detach();*/
 
 		// Application loop:
 		while (true)
 		{
 			// Logic for receiving:
-			if (_rcvMessageServer->size() > 0)
+			/*if (_rcvMessageServer->size() > 0)
 			{
 				system("cls");
 
@@ -88,10 +88,10 @@ void main()
 				std::cout << "\t> Message to send to the client: ";
 				
 				_rcvMessageServer->clear();
-			}
+			}*/
 
 			// Logic for sending:
-			if (_sendMessageServer->size() > 0)
+			/*if (_sendMessageServer->size() > 0)
 			{
 				for (auto client : _serverSocketManager->_clients)
 				{
@@ -104,19 +104,19 @@ void main()
 				}
 
 				_sendMessageServer->clear();
-			}
+			}*/
 		}
 
 		// Si s'arriba aquí, el servidor revient (es tanca).
 	}
 	else if (server_mode == 2) // Client
 	{
-		bool alreadyExists = false;
+		/*bool alreadyExists = false;
 		std::string name;
 		std::cout << "> CLIENT:\n" << std::endl;
 		std::cout << "--------------------------------------------------\n" << std::endl;
 		std::cout << "> Enter your Username: ";
-		std::cin >> name;
+		std::cin >> name;*/
 
 		/*do {
 			alreadyExists = false;
@@ -156,43 +156,43 @@ void main()
 		std::thread rcv_t_client(&UDPClientManager::Receive, _clientSocketManager, _inClientPacket, _rcvMessageClient);
 		rcv_t_client.detach();
 		
-		std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient, _clientSocketManager);
-		read_console_t_client.detach();
+		/*std::thread read_console_t_client(GetLineFromCin_t, _sendMessageClient, _clientSocketManager);
+		read_console_t_client.detach();*/
 
 		while (true)
 		{
-			// Logic for receiving:
-			if (_rcvMessageClient->size() > 0)
-			{
-				if (*_rcvMessageClient == "exit" || *_rcvMessageClient == "Exit")
-				{
-					_clientSocketManager->Disconnect();
-					break;
-				}
+			//// Logic for receiving:
+			//if (_rcvMessageClient->size() > 0)
+			//{
+			//	if (*_rcvMessageClient == "exit" || *_rcvMessageClient == "Exit")
+			//	{
+			//		_clientSocketManager->Disconnect();
+			//		break;
+			//	}
 
-				//system("cls");
+			//	//system("cls");
 
-				std::cout << "> CLIENT:\n" << std::endl;
-				std::cout << "--------------------------------------------------\n" << std::endl;
-				std::cout << "> From Server: " << *_rcvMessageClient << std::endl;
-				std::cout << "\n--------------------------------------------------\n" << std::endl;
-				std::cout << "\t> Message to send to the server: ";
+			//	std::cout << "> CLIENT:\n" << std::endl;
+			//	std::cout << "--------------------------------------------------\n" << std::endl;
+			//	std::cout << "> From Server: " << *_rcvMessageClient << std::endl;
+			//	std::cout << "\n--------------------------------------------------\n" << std::endl;
+			//	std::cout << "\t> Message to send to the server: ";
 
-				_rcvMessageClient->clear();
-			}
+			//	_rcvMessageClient->clear();
+			//}
 
-			// Logic for sending:
-			if (_sendMessageClient->size() > 0)
-			{
-				if (_clientSocketManager->Send(_inClientPacket, _serverSocketManager->GetIp(), _serverSocketManager->GetPort(), _sendMessageClient) == UDPClientManager::Status::Disconnected)
-				{
-					_sendMessageClient->clear();
-					_clientSocketManager->Disconnect();
-					break;
-				}
+			//// Logic for sending:
+			//if (_sendMessageClient->size() > 0)
+			//{
+			//	if (_clientSocketManager->Send(_inClientPacket, _serverSocketManager->GetIp(), _serverSocketManager->GetPort(), _sendMessageClient) == UDPClientManager::Status::Disconnected)
+			//	{
+			//		_sendMessageClient->clear();
+			//		_clientSocketManager->Disconnect();
+			//		break;
+			//	}
 
-				_sendMessageClient->clear();
-			}
+			//	_sendMessageClient->clear();
+			//}
 		}
 	}
 }
